@@ -1,0 +1,1267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Student's Register</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --primary: #3B5BDB;
+    --primary-dark: #2f4bc9;
+    --primary-light: #EEF2FF;
+    --accent: #6C8EF5;
+    --danger: #E53E3E;
+    --success: #38A169;
+    --bg: #F0F4FF;
+    --surface: #FFFFFF;
+    --border: #DCE3F5;
+    --text: #1A202C;
+    --muted: #718096;
+    --shadow: 0 2px 12px rgba(59,91,219,0.10);
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); }
+
+  /* AUTH */
+  #auth-screen {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #3B5BDB 0%, #6C8EF5 100%);
+    padding: 20px;
+  }
+  .auth-card {
+    background: var(--surface);
+    border-radius: 20px;
+    padding: 40px 36px;
+    width: 100%;
+    max-width: 400px;
+    box-shadow: 0 20px 60px rgba(59,91,219,0.25);
+  }
+  .auth-logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+  .auth-logo-icon {
+    width: 48px; height: 48px;
+    background: var(--primary);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .auth-logo-icon svg { width: 26px; height: 26px; fill: white; }
+  .auth-title { font-size: 22px; font-weight: 700; color: var(--text); }
+  .auth-subtitle { font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .auth-card h2 { font-size: 20px; font-weight: 600; margin-bottom: 6px; }
+  .auth-card p { color: var(--muted); font-size: 14px; margin-bottom: 24px; }
+  .form-group { margin-bottom: 16px; }
+  .form-group label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px; color: var(--text); }
+  .form-group input {
+    width: 100%; padding: 11px 14px;
+    border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+    font-size: 14px; outline: none; transition: border 0.2s;
+    background: #FAFBFF;
+  }
+  .form-group input:focus { border-color: var(--primary); background: white; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 10px 18px; border-radius: var(--radius-sm);
+    font-size: 14px; font-weight: 500; cursor: pointer;
+    border: none; transition: all 0.18s;
+  }
+  .btn-primary { background: var(--primary); color: white; }
+  .btn-primary:hover { background: var(--primary-dark); }
+  .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+  .btn-block { width: 100%; justify-content: center; padding: 12px; font-size: 15px; }
+  .auth-error { background: #FFF5F5; color: var(--danger); border: 1px solid #FED7D7; border-radius: var(--radius-sm); padding: 10px 14px; font-size: 13px; margin-bottom: 16px; display: none; }
+
+  /* APP */
+  #app-screen { display: none; min-height: 100vh; flex-direction: column; }
+  .app-header {
+    background: var(--surface);
+    border-bottom: 1.5px solid var(--border);
+    padding: 14px 20px;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 100;
+    box-shadow: var(--shadow);
+  }
+  .app-header-left { display: flex; align-items: center; gap: 10px; }
+  .header-logo {
+    width: 36px; height: 36px;
+    background: var(--primary); border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .header-logo svg { width: 20px; height: 20px; fill: white; }
+  .header-title { font-size: 16px; font-weight: 700; color: var(--text); }
+  .header-subtitle { font-size: 11px; color: var(--muted); }
+  .btn-logout {
+    background: none; border: 1.5px solid var(--border);
+    color: var(--muted); border-radius: var(--radius-sm);
+    padding: 7px 13px; font-size: 13px; cursor: pointer;
+    display: flex; align-items: center; gap: 5px;
+    transition: all 0.18s;
+  }
+  .btn-logout:hover { border-color: var(--danger); color: var(--danger); }
+
+  .app-body { padding: 16px 16px 32px; max-width: 900px; margin: 0 auto; width: 100%; }
+
+  /* GRADE TABS */
+  .grade-tabs-wrap { overflow-x: auto; padding-bottom: 4px; -webkit-overflow-scrolling: touch; }
+  .grade-tabs-wrap::-webkit-scrollbar { height: 3px; }
+  .grade-tabs-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  .grade-tabs {
+    display: flex; gap: 6px; padding: 14px 0 2px;
+    min-width: max-content;
+  }
+  .grade-tab {
+    padding: 7px 16px; border-radius: 20px;
+    font-size: 13px; font-weight: 500; cursor: pointer;
+    border: 1.5px solid var(--border); background: var(--surface);
+    color: var(--muted); transition: all 0.18s; white-space: nowrap;
+  }
+  .grade-tab.active { background: var(--primary); color: white; border-color: var(--primary); }
+  .grade-tab:hover:not(.active) { border-color: var(--primary); color: var(--primary); }
+  .grade-tab-all-grades {
+    padding: 7px 16px; border-radius: 20px;
+    font-size: 13px; font-weight: 500; cursor: pointer;
+    border: 1.5px solid var(--border); background: var(--surface);
+    color: var(--muted); transition: all 0.18s; white-space: nowrap;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .grade-tab-all-grades.on { background: #D97706; color: white; border-color: #D97706; }
+  .all-grades-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+
+  /* VIEW TABS */
+  .view-tabs { display: flex; gap: 8px; margin: 16px 0 10px; }
+  .view-tab {
+    padding: 8px 18px; border-radius: var(--radius-sm);
+    font-size: 13px; font-weight: 500; cursor: pointer;
+    border: 1.5px solid var(--border); background: var(--surface);
+    color: var(--muted); transition: all 0.18s;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .view-tab.active { background: var(--primary); color: white; border-color: var(--primary); }
+  .view-tab:hover:not(.active) { border-color: var(--primary); color: var(--primary); }
+  .view-tab svg { width: 15px; height: 15px; }
+
+  /* PANEL */
+  .panel { background: var(--surface); border-radius: var(--radius); border: 1.5px solid var(--border); box-shadow: var(--shadow); }
+  .panel-header {
+    padding: 14px 16px; border-bottom: 1.5px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+  }
+  .panel-title { font-size: 15px; font-weight: 600; }
+  .panel-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .panel-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+  .btn-secondary {
+    background: var(--surface); color: var(--primary);
+    border: 1.5px solid var(--border);
+  }
+  .btn-secondary:hover { border-color: var(--primary); background: var(--primary-light); }
+  .btn-outline-danger { background: none; color: var(--danger); border: 1.5px solid #FED7D7; border-radius: var(--radius-sm); padding: 7px 13px; font-size: 13px; cursor: pointer; transition: all 0.18s; }
+  .btn-outline-danger:hover { background: #FFF5F5; }
+  .btn-pct { background: none; color: var(--muted); border: 1.5px solid var(--border); border-radius: var(--radius-sm); padding: 7px 13px; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 5px; transition: all 0.18s; }
+  .btn-pct:hover { border-color: var(--primary); color: var(--primary); }
+
+  /* STUDENT TABLE */
+  .students-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .students-table { width: 100%; border-collapse: collapse; min-width: 400px; }
+  .students-table th {
+    text-align: left; font-size: 12px; font-weight: 600;
+    color: var(--muted); padding: 10px 14px;
+    border-bottom: 1.5px solid var(--border);
+    background: #FAFBFF; white-space: nowrap;
+  }
+  .students-table td { padding: 11px 14px; font-size: 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  .students-table tr:last-child td { border-bottom: none; }
+  .students-table tr:hover td { background: var(--primary-light); }
+  .student-photo {
+    width: 32px; height: 32px; border-radius: 50%; object-fit: cover;
+    background: var(--primary-light); display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; font-size: 13px; font-weight: 600; color: var(--primary);
+    overflow: hidden;
+  }
+  .student-photo img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+  .student-name-cell { display: flex; align-items: center; gap: 10px; }
+  .student-edit-btn {
+    background: none; border: none; cursor: pointer;
+    color: var(--muted); padding: 4px; border-radius: 6px;
+    transition: all 0.18s;
+  }
+  .student-edit-btn:hover { color: var(--primary); background: var(--primary-light); }
+  .student-del-btn {
+    background: none; border: none; cursor: pointer;
+    color: var(--muted); padding: 4px; border-radius: 6px;
+    transition: all 0.18s;
+  }
+  .student-del-btn:hover { color: var(--danger); background: #FFF5F5; }
+  .empty-state { padding: 40px; text-align: center; color: var(--muted); font-size: 14px; }
+
+  /* ATTENDANCE */
+  .att-record { padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); }
+  .att-record:last-child { border-bottom: none; }
+  .att-record-date { font-size: 14px; font-weight: 500; }
+  .att-record-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .att-record-actions { display: flex; gap: 6px; }
+  .att-icon-btn {
+    background: none; border: 1.5px solid var(--border); cursor: pointer;
+    border-radius: 6px; padding: 5px; color: var(--muted);
+    transition: all 0.18s; display: flex; align-items: center;
+  }
+  .att-icon-btn:hover { color: var(--primary); border-color: var(--primary); }
+  .att-icon-btn.danger:hover { color: var(--danger); border-color: var(--danger); }
+  .per-student-row { padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); font-size: 14px; }
+  .per-student-row:last-child { border-bottom: none; }
+  .per-student-name { display: flex; align-items: center; gap: 8px; }
+  .pct-badge {
+    font-size: 12px; font-weight: 600; padding: 3px 8px; border-radius: 12px;
+    background: var(--primary-light); color: var(--primary);
+  }
+  .pct-badge.low { background: #FFF5F5; color: var(--danger); }
+  .pct-badge.med { background: #FFFBEB; color: #D97706; }
+
+  /* MODAL */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+    display: flex; align-items: flex-end; justify-content: center;
+    z-index: 1000; padding: 0;
+  }
+  @media (min-width: 600px) {
+    .modal-overlay { align-items: center; padding: 20px; }
+  }
+  .modal {
+    background: var(--surface); border-radius: 20px 20px 0 0;
+    padding: 24px; width: 100%; max-width: 480px;
+    max-height: 90vh; overflow-y: auto;
+    animation: slideUp 0.25s ease;
+  }
+  @media (min-width: 600px) {
+    .modal { border-radius: 16px; max-height: 85vh; }
+  }
+  @keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+  .modal-title { font-size: 18px; font-weight: 700; }
+  .modal-subtitle { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+  .modal-close { background: none; border: none; cursor: pointer; color: var(--muted); padding: 4px; border-radius: 6px; }
+  .modal-close:hover { color: var(--text); }
+  .modal-close svg { width: 20px; height: 20px; }
+  .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+  .btn-cancel { background: none; border: 1.5px solid var(--border); color: var(--muted); border-radius: var(--radius-sm); padding: 10px 18px; font-size: 14px; cursor: pointer; transition: all 0.18s; }
+  .btn-cancel:hover { border-color: var(--text); color: var(--text); }
+
+  /* FORM ELEMENTS */
+  .field-group { margin-bottom: 14px; }
+  .field-group label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 5px; }
+  .field-group input, .field-group select, .field-group textarea {
+    width: 100%; padding: 10px 13px;
+    border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+    font-size: 14px; outline: none; transition: border 0.2s;
+    font-family: inherit;
+  }
+  .field-group input:focus, .field-group select:focus, .field-group textarea:focus { border-color: var(--primary); }
+  .field-group textarea { resize: vertical; min-height: 60px; }
+
+  /* COLUMN EDITOR */
+  .col-item { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .col-item input { flex: 1; padding: 9px 12px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); font-size: 14px; outline: none; transition: border 0.2s; }
+  .col-item input:focus { border-color: var(--primary); }
+  .col-remove { background: none; border: 1.5px solid var(--border); cursor: pointer; border-radius: 6px; padding: 6px; color: var(--muted); transition: all 0.18s; }
+  .col-remove:hover { border-color: var(--danger); color: var(--danger); }
+  .col-remove svg { width: 16px; height: 16px; display: block; }
+  .btn-add-col { width: 100%; padding: 9px; border: 1.5px dashed var(--border); background: none; border-radius: var(--radius-sm); color: var(--muted); font-size: 14px; cursor: pointer; transition: all 0.18s; }
+  .btn-add-col:hover { border-color: var(--primary); color: var(--primary); }
+
+  /* ATTENDANCE MODAL */
+  .att-student-item { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--border); cursor: pointer; }
+  .att-student-item:last-child { border-bottom: none; }
+  .att-student-item label { flex: 1; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+  .att-checkbox { width: 18px; height: 18px; accent-color: var(--primary); cursor: pointer; flex-shrink: 0; }
+  .att-bulk-btns { display: flex; gap: 8px; margin-bottom: 14px; }
+  .att-bulk-btn { padding: 7px 14px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); background: none; font-size: 13px; cursor: pointer; transition: all 0.18s; }
+  .att-bulk-btn:hover { border-color: var(--primary); color: var(--primary); }
+
+  /* PHOTO UPLOAD */
+  .photo-upload-wrap { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .photo-preview { width: 56px; height: 56px; border-radius: 50%; background: var(--primary-light); display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; }
+  .photo-preview svg { width: 28px; height: 28px; color: var(--accent); }
+  .photo-preview img { width: 100%; height: 100%; object-fit: cover; }
+  .photo-upload-btn { padding: 8px 14px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); background: none; font-size: 13px; cursor: pointer; color: var(--muted); transition: all 0.18s; }
+  .photo-upload-btn:hover { border-color: var(--primary); color: var(--primary); }
+  #photo-input { display: none; }
+
+  /* TOAST */
+  .toast {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    background: #1A202C; color: white; padding: 12px 20px;
+    border-radius: 10px; font-size: 14px; z-index: 9999;
+    animation: toastIn 0.25s ease; pointer-events: none;
+    white-space: nowrap;
+  }
+  @keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(10px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+
+  /* PERCENTAGE TABLE */
+  .pct-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .pct-table th { text-align: left; padding: 9px 14px; border-bottom: 1.5px solid var(--border); background: #FAFBFF; color: var(--muted); font-size: 12px; font-weight: 600; }
+  .pct-table td { padding: 10px 14px; border-bottom: 1px solid var(--border); }
+  .pct-table tr:last-child td { border-bottom: none; }
+
+  .loading { text-align: center; padding: 30px; color: var(--muted); font-size: 14px; }
+  .section-label { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; padding: 12px 16px 6px; }
+
+  /* Responsive */
+  @media (max-width: 480px) {
+    .app-body { padding: 12px 12px 24px; }
+    .panel-header { flex-direction: column; align-items: flex-start; }
+    .panel-actions { width: 100%; }
+    .btn { font-size: 13px; padding: 9px 14px; }
+  }
+
+  /* ALL GRADES BANNER */
+  .all-grades-banner {
+    background: linear-gradient(90deg, #D97706, #F59E0B);
+    color: white; font-size: 13px; font-weight: 500;
+    padding: 8px 16px; border-radius: var(--radius-sm);
+    margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
+  }
+  .all-grades-banner svg { width: 15px; height: 15px; }
+</style>
+</head>
+<body>
+
+<!-- AUTH SCREEN -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="auth-logo-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 3L1 9l11 6 9-4.91V17h2V9L12 3zm0 12.5L3 10.26V17l9 5 9-5v-6.74L12 15.5z"/></svg>
+      </div>
+      <div>
+        <div class="auth-title">Student's Register</div>
+        <div class="auth-subtitle">Attendance & Records</div>
+      </div>
+    </div>
+    <h2>Sign in</h2>
+    <p>Enter your credentials to access your class data.</p>
+    <div class="auth-error" id="auth-error"></div>
+    <div class="form-group">
+      <label>Email</label>
+      <input type="email" id="email-input" placeholder="you@example.com" autocomplete="email" />
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="pw-input" placeholder="••••••••" autocomplete="current-password" />
+    </div>
+    <button class="btn btn-primary btn-block" id="login-btn" onclick="doLogin()">Sign in</button>
+  </div>
+</div>
+
+<!-- APP SCREEN -->
+<div id="app-screen">
+  <div class="app-header">
+    <div class="app-header-left">
+      <div class="header-logo">
+        <svg viewBox="0 0 24 24"><path d="M12 3L1 9l11 6 9-4.91V17h2V9L12 3zm0 12.5L3 10.26V17l9 5 9-5v-6.74L12 15.5z"/></svg>
+      </div>
+      <div>
+        <div class="header-title">Student's Register</div>
+        <div class="header-subtitle">Students · Attendance · Percentage</div>
+      </div>
+    </div>
+    <button class="btn-logout" onclick="doLogout()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Sign out
+    </button>
+  </div>
+
+  <div class="app-body">
+    <!-- GRADE TABS -->
+    <div class="grade-tabs-wrap">
+      <div class="grade-tabs" id="grade-tabs">
+        <!-- generated -->
+      </div>
+    </div>
+
+    <!-- VIEW TABS -->
+    <div class="view-tabs">
+      <button class="view-tab active" id="tab-students" onclick="switchView('students')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+        Students
+      </button>
+      <button class="view-tab" id="tab-attendance" onclick="switchView('attendance')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Attendance
+      </button>
+    </div>
+
+    <!-- STUDENTS PANEL -->
+    <div class="panel" id="students-panel">
+      <div class="panel-header">
+        <div>
+          <div class="panel-title" id="grade-label">6th Grade · Students</div>
+          <div class="panel-meta" id="students-meta">0 students</div>
+        </div>
+        <div class="panel-actions">
+          <button class="btn btn-secondary" onclick="openEditColumns()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            Edit Columns
+          </button>
+          <button class="btn btn-primary" onclick="openAddStudent()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add Student
+          </button>
+          <button class="btn-pct" onclick="openPercentage()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>
+            Percentage
+          </button>
+        </div>
+      </div>
+      <div class="students-table-wrap">
+        <table class="students-table" id="students-table">
+          <thead id="students-thead"><tr></tr></thead>
+          <tbody id="students-tbody"></tbody>
+        </table>
+        <div class="empty-state" id="students-empty" style="display:none;">No students yet. Click "Add Student" to begin.</div>
+      </div>
+    </div>
+
+    <!-- ATTENDANCE PANEL -->
+    <div class="panel" id="attendance-panel" style="display:none;">
+      <div class="panel-header">
+        <div>
+          <div class="panel-title" id="att-grade-label">6th Grade · Attendance</div>
+          <div class="panel-meta" id="att-meta">0 days recorded</div>
+        </div>
+        <div class="panel-actions">
+          <button class="btn btn-primary" onclick="openMarkAttendance()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Mark Attendance
+          </button>
+        </div>
+      </div>
+      <div id="att-records-section">
+        <div class="section-label">Attendance Records</div>
+        <div id="att-records-list"><div class="empty-state">No attendance recorded yet.</div></div>
+      </div>
+      <div id="att-per-student-section" style="margin-top:8px;">
+        <div class="section-label">Per-Student Attendance</div>
+        <div id="att-per-student-list"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Edit Columns -->
+<div class="modal-overlay" id="modal-columns" style="display:none;" onclick="modalOverlayClick(event,'modal-columns')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <span class="modal-title">Edit Columns</span>
+      <button class="modal-close" onclick="closeModal('modal-columns')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-subtitle">These columns apply to every student in this grade. You can add more anytime.</div>
+    <div id="all-grades-banner-col" style="display:none;" class="all-grades-banner">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v4H4zm0 8h16v4H4zm0 8h16v4H4z"/></svg>
+      All Grades mode ON — columns will be added to all grades
+    </div>
+    <div id="columns-list"></div>
+    <button class="btn-add-col" onclick="addColumnField()">+ Add Column</button>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('modal-columns')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveColumns()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Add/Edit Student -->
+<div class="modal-overlay" id="modal-student" style="display:none;" onclick="modalOverlayClick(event,'modal-student')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <span class="modal-title" id="student-modal-title">Add Student</span>
+      <button class="modal-close" onclick="closeModal('modal-student')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-subtitle">Fill in the details below.</div>
+    <div class="photo-upload-wrap">
+      <div class="photo-preview" id="photo-preview">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      </div>
+      <div>
+        <button class="photo-upload-btn" onclick="document.getElementById('photo-input').click()">Choose Photo</button>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px;">Optional. Max 2MB.</div>
+      </div>
+    </div>
+    <input type="file" id="photo-input" accept="image/*" onchange="handlePhotoSelect(event)" />
+    <div id="student-fields"></div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('modal-student')">Cancel</button>
+      <button class="btn btn-primary" id="student-submit-btn" onclick="saveStudent()">Add Student</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Mark Attendance -->
+<div class="modal-overlay" id="modal-attendance" style="display:none;" onclick="modalOverlayClick(event,'modal-attendance')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <span class="modal-title">Mark Attendance</span>
+      <button class="modal-close" onclick="closeModal('modal-attendance')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-subtitle">Tick the students who are present.</div>
+    <div class="field-group">
+      <label>Date</label>
+      <input type="date" id="att-date" />
+    </div>
+    <div class="att-bulk-btns">
+      <button class="att-bulk-btn" onclick="attMarkAll(true)">All present</button>
+      <button class="att-bulk-btn" onclick="attMarkAll(false)">All absent</button>
+    </div>
+    <div id="att-student-list"></div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('modal-attendance')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveAttendance()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Percentage -->
+<div class="modal-overlay" id="modal-percentage" style="display:none;" onclick="modalOverlayClick(event,'modal-percentage')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <span class="modal-title">Attendance Percentage</span>
+      <button class="modal-close" onclick="closeModal('modal-percentage')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-subtitle">Enter total working days, then calculate.</div>
+    <div class="field-group">
+      <label>Total Working Days</label>
+      <input type="number" id="total-working-days" placeholder="e.g. 120" min="1" />
+    </div>
+    <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="calcPercentage()">Calculate</button>
+    <div id="pct-results" style="margin-top:16px;"></div>
+  </div>
+</div>
+
+<!-- MODAL: Delete Confirm -->
+<div class="modal-overlay" id="modal-confirm" style="display:none;" onclick="modalOverlayClick(event,'modal-confirm')">
+  <div class="modal" onclick="event.stopPropagation()" style="max-width:360px;">
+    <div class="modal-header">
+      <span class="modal-title" id="confirm-title">Confirm Delete</span>
+      <button class="modal-close" onclick="closeModal('modal-confirm')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <p style="font-size:14px;color:var(--muted);margin-top:6px;" id="confirm-msg">Are you sure?</p>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('modal-confirm')">Cancel</button>
+      <button class="btn" style="background:var(--danger);color:white;" id="confirm-ok-btn">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://beiyxujxtakhmzlfbncj.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJlaXl4dWp4dGFraG16bGZibmNqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEwMDUyODEsImV4cCI6MjA5NjU4MTI4MX0.Qx0DOxWZx0TdWxf-OfWR1L2vxCZfmU7vv_C-wqCI6gk';
+const { createClient } = supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: { persistSession: true, storageKey: 'sr_session', storage: window.localStorage }
+});
+
+const GRADES = ['6th','7th','8th','9th','10th','11th','12th'];
+let currentGrade = '6th';
+let currentView = 'students';
+let students = [];
+let columns = []; // per grade
+let attendanceRecords = [];
+let editingStudentId = null;
+let editingAttendanceId = null;
+let photoBase64 = null;
+let allGradesMode = false;
+let gradeColumns = {}; // {grade: [col,...]}
+let gradeStudents = {}; // cached
+let gradeAttendance = {};
+
+// ===================== INIT =====================
+async function init() {
+  // Restore session
+  const { data: { session } } = await db.auth.getSession();
+  if (session) {
+    showApp();
+  } else {
+    showAuth();
+  }
+  db.auth.onAuthStateChange((event, session) => {
+    if (event === 'SIGNED_IN' && session) showApp();
+    if (event === 'SIGNED_OUT') showAuth();
+  });
+
+  // Auto-logout on tab close / navigation away (but NOT on page hide from screen off)
+  document.addEventListener('visibilitychange', handleVisibilityChange);
+  window.addEventListener('pagehide', handlePageHide);
+  // Back button / popstate
+  window.history.pushState(null, '', window.location.href);
+  window.addEventListener('popstate', handlePopState);
+}
+
+// --- Session persistence strategy ---
+// We use a flag in sessionStorage to distinguish:
+// Tab close / navigation = logout
+// Screen off (pagehide on mobile, then comes back) = keep session
+
+let _pageHideClean = false;
+
+function handlePageHide(e) {
+  // e.persisted = true means page is being cached (bfcache = screen off scenario)
+  if (!e.persisted) {
+    // Real navigation away (close tab, navigate, back button clears)
+    // mark as ended
+    sessionStorage.setItem('sr_page_ended', '1');
+  }
+}
+
+function handleVisibilityChange() {
+  if (document.visibilityState === 'hidden') {
+    // Could be screen off OR navigating away
+    // We set a timestamp; if restored quickly, it's screen off
+    sessionStorage.setItem('sr_hidden_at', Date.now().toString());
+  } else if (document.visibilityState === 'visible') {
+    // Check if we need to logout
+    const ended = sessionStorage.getItem('sr_page_ended');
+    if (ended) {
+      sessionStorage.removeItem('sr_page_ended');
+      doLogout();
+    }
+  }
+}
+
+async function handlePopState() {
+  // Back button pressed
+  window.history.pushState(null, '', window.location.href);
+  const { data: { session } } = await db.auth.getSession();
+  if (session) {
+    // User pressed back while logged in — log out
+    await db.auth.signOut();
+    sessionStorage.removeItem('sr_session_active');
+    showAuth();
+  }
+}
+
+// On page load, check if we ended last session
+window.addEventListener('load', async () => {
+  const ended = sessionStorage.getItem('sr_page_ended');
+  if (ended) {
+    sessionStorage.removeItem('sr_page_ended');
+    await db.auth.signOut();
+    showAuth();
+    return;
+  }
+  await init();
+});
+
+function showAuth() {
+  document.getElementById('auth-screen').style.display = 'flex';
+  document.getElementById('app-screen').style.display = 'none';
+}
+
+async function showApp() {
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('app-screen').style.display = 'flex';
+  document.getElementById('app-screen').style.flexDirection = 'column';
+  await ensureTables();
+  buildGradeTabs();
+  await loadGradeData(currentGrade);
+}
+
+// ===================== AUTH =====================
+async function doLogin() {
+  const email = document.getElementById('email-input').value.trim();
+  const pw = document.getElementById('pw-input').value;
+  const btn = document.getElementById('login-btn');
+  const errEl = document.getElementById('auth-error');
+  errEl.style.display = 'none';
+  if (!email || !pw) { showAuthError('Please enter email and password.'); return; }
+  btn.disabled = true; btn.textContent = 'Signing in…';
+  const { error } = await db.auth.signInWithPassword({ email, password: pw });
+  btn.disabled = false; btn.textContent = 'Sign in';
+  if (error) { showAuthError(error.message); return; }
+  sessionStorage.setItem('sr_session_active', '1');
+}
+
+function showAuthError(msg) {
+  const el = document.getElementById('auth-error');
+  el.textContent = msg; el.style.display = 'block';
+}
+
+async function doLogout() {
+  await db.auth.signOut();
+  sessionStorage.removeItem('sr_session_active');
+  showAuth();
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.getElementById('auth-screen').style.display !== 'none') {
+    doLogin();
+  }
+});
+
+// ===================== DB SETUP =====================
+async function ensureTables() {
+  // Tables are created via Supabase dashboard or migrations
+  // We'll use these table names:
+  // sr_columns: id, grade, col_order, name
+  // sr_students: id, grade, data (jsonb), photo_url, created_at
+  // sr_attendance: id, grade, date, present_ids (jsonb)
+  // We just proceed and handle errors gracefully
+}
+
+// ===================== GRADE TABS =====================
+function buildGradeTabs() {
+  const tabs = document.getElementById('grade-tabs');
+  tabs.innerHTML = '';
+  GRADES.forEach(g => {
+    const btn = document.createElement('button');
+    btn.className = 'grade-tab' + (g === currentGrade ? ' active' : '');
+    btn.textContent = g;
+    btn.onclick = () => switchGrade(g);
+    tabs.appendChild(btn);
+  });
+  // All Grades toggle
+  const agBtn = document.createElement('button');
+  agBtn.className = 'grade-tab-all-grades' + (allGradesMode ? ' on' : '');
+  agBtn.id = 'all-grades-btn';
+  agBtn.innerHTML = `<span class="all-grades-dot"></span> All Grades`;
+  agBtn.title = 'When ON, new columns are added to all grades';
+  agBtn.onclick = toggleAllGrades;
+  tabs.appendChild(agBtn);
+}
+
+function toggleAllGrades() {
+  allGradesMode = !allGradesMode;
+  const btn = document.getElementById('all-grades-btn');
+  if (btn) { btn.className = 'grade-tab-all-grades' + (allGradesMode ? ' on' : ''); }
+  showToast(allGradesMode ? '✓ All Grades mode ON' : 'All Grades mode OFF');
+}
+
+async function switchGrade(g) {
+  currentGrade = g;
+  document.querySelectorAll('.grade-tab').forEach(t => {
+    t.classList.toggle('active', t.textContent === g);
+  });
+  await loadGradeData(g);
+}
+
+// ===================== LOAD DATA =====================
+async function loadGradeData(grade) {
+  showLoadingStudents();
+  // Load columns
+  const { data: cols, error: ce } = await db.from('sr_columns').select('*').eq('grade', grade).order('col_order', {ascending:true});
+  columns = ce ? [] : (cols || []).map(c => c.name);
+  // Load students
+  const { data: studs, error: se } = await db.from('sr_students').select('*').eq('grade', grade).order('created_at', {ascending:true});
+  students = se ? [] : (studs || []);
+  // Load attendance
+  const { data: att, error: ae } = await db.from('sr_attendance').select('*').eq('grade', grade).order('date', {ascending:false});
+  attendanceRecords = ae ? [] : (att || []);
+
+  updateGradeLabel(grade);
+  renderStudents();
+  renderAttendance();
+}
+
+function showLoadingStudents() {
+  document.getElementById('students-tbody').innerHTML = '<tr><td colspan="20" class="loading">Loading…</td></tr>';
+  document.getElementById('students-empty').style.display = 'none';
+}
+
+function updateGradeLabel(grade) {
+  document.getElementById('grade-label').textContent = `${grade} Grade · Students`;
+  document.getElementById('att-grade-label').textContent = `${grade} Grade · Attendance`;
+}
+
+// ===================== VIEW SWITCHING =====================
+function switchView(view) {
+  currentView = view;
+  document.getElementById('students-panel').style.display = view === 'students' ? 'block' : 'none';
+  document.getElementById('attendance-panel').style.display = view === 'attendance' ? 'block' : 'none';
+  document.getElementById('tab-students').className = 'view-tab' + (view === 'students' ? ' active' : '');
+  document.getElementById('tab-attendance').className = 'view-tab' + (view === 'attendance' ? ' active' : '');
+}
+
+// ===================== STUDENTS =====================
+function renderStudents() {
+  const thead = document.getElementById('students-thead').querySelector('tr');
+  const tbody = document.getElementById('students-tbody');
+  const empty = document.getElementById('students-empty');
+  const meta = document.getElementById('students-meta');
+
+  meta.textContent = `${students.length} student${students.length !== 1 ? 's' : ''} · ${columns.length} column${columns.length !== 1 ? 's' : ''}`;
+
+  // Build header
+  thead.innerHTML = '<th style="width:40px;"></th>';
+  columns.forEach(col => { thead.innerHTML += `<th>${col}</th>`; });
+  thead.innerHTML += '<th style="width:70px;"></th>';
+
+  if (students.length === 0) {
+    tbody.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  tbody.innerHTML = '';
+  students.forEach(s => {
+    const data = s.data || {};
+    const tr = document.createElement('tr');
+    // Photo cell
+    let photoHtml = '';
+    if (s.photo_url) {
+      photoHtml = `<img src="${s.photo_url}" />`;
+    } else {
+      const name = data[columns[0]] || '?';
+      photoHtml = name.charAt(0).toUpperCase();
+    }
+    let cols = `<td><div class="student-photo">${s.photo_url ? `<img src="${s.photo_url}" />` : (data[columns[0]] || '?').charAt(0).toUpperCase()}</div></td>`;
+    columns.forEach((col, i) => {
+      const val = data[col] || '—';
+      if (i === 0) {
+        cols += `<td><div class="student-name-cell" style="font-weight:500;">${val}</div></td>`;
+      } else {
+        cols += `<td>${val}</td>`;
+      }
+    });
+    cols += `<td style="white-space:nowrap;">
+      <button class="student-edit-btn" onclick="openEditStudent('${s.id}')" title="Edit">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      </button>
+      <button class="student-del-btn" onclick="confirmDeleteStudent('${s.id}')" title="Delete">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+      </button>
+    </td>`;
+    tr.innerHTML = cols;
+    tbody.appendChild(tr);
+  });
+}
+
+// ===================== COLUMNS =====================
+function openEditColumns() {
+  const list = document.getElementById('columns-list');
+  list.innerHTML = '';
+  const banner = document.getElementById('all-grades-banner-col');
+  banner.style.display = allGradesMode ? 'flex' : 'none';
+  // Always show at least Name field locked
+  const displayCols = columns.length > 0 ? columns : ['Name', "Father's Name", "Mother's Name"];
+  displayCols.forEach((col, i) => {
+    addColumnField(col, i === 0); // first col non-removable if it's the only one
+  });
+  document.getElementById('modal-columns').style.display = 'flex';
+}
+
+function addColumnField(value = '', locked = false) {
+  const list = document.getElementById('columns-list');
+  const div = document.createElement('div');
+  div.className = 'col-item';
+  div.innerHTML = `
+    <input type="text" placeholder="Column name" value="${value}" onkeydown="colFieldKeyDown(event, this)" />
+    <button class="col-remove" onclick="this.parentElement.remove()" ${locked ? 'disabled style="opacity:0.3;cursor:not-allowed;"' : ''} title="Remove">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>`;
+  list.appendChild(div);
+  div.querySelector('input').focus();
+}
+
+function colFieldKeyDown(e, input) {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    addColumnField();
+  }
+}
+
+async function saveColumns() {
+  const inputs = document.querySelectorAll('#columns-list .col-item input');
+  const newCols = Array.from(inputs).map(i => i.value.trim()).filter(Boolean);
+  if (newCols.length === 0) { showToast('Add at least one column.'); return; }
+
+  const gradesToUpdate = allGradesMode ? GRADES : [currentGrade];
+
+  for (const grade of gradesToUpdate) {
+    // Delete existing columns for this grade
+    await db.from('sr_columns').delete().eq('grade', grade);
+    // Insert new
+    const rows = newCols.map((name, idx) => ({ grade, col_order: idx, name }));
+    await db.from('sr_columns').insert(rows);
+  }
+
+  closeModal('modal-columns');
+  showToast(allGradesMode ? '✓ Columns saved to all grades' : '✓ Columns saved');
+  await loadGradeData(currentGrade);
+}
+
+// ===================== ADD/EDIT STUDENT =====================
+function openAddStudent() {
+  editingStudentId = null;
+  photoBase64 = null;
+  document.getElementById('student-modal-title').textContent = 'Add Student';
+  document.getElementById('student-submit-btn').textContent = 'Add Student';
+  document.getElementById('photo-preview').innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
+  buildStudentFields({});
+  document.getElementById('modal-student').style.display = 'flex';
+}
+
+function openEditStudent(id) {
+  editingStudentId = id;
+  const s = students.find(st => st.id === id);
+  if (!s) return;
+  photoBase64 = null;
+  document.getElementById('student-modal-title').textContent = 'Edit Student';
+  document.getElementById('student-submit-btn').textContent = 'Save Changes';
+  if (s.photo_url) {
+    document.getElementById('photo-preview').innerHTML = `<img src="${s.photo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />`;
+  } else {
+    document.getElementById('photo-preview').innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
+  }
+  buildStudentFields(s.data || {});
+  document.getElementById('modal-student').style.display = 'flex';
+}
+
+function buildStudentFields(data) {
+  const container = document.getElementById('student-fields');
+  container.innerHTML = '';
+  const displayCols = columns.length > 0 ? columns : ['Name'];
+  displayCols.forEach(col => {
+    const div = document.createElement('div');
+    div.className = 'field-group';
+    div.innerHTML = `<label>${col}</label><textarea rows="1" data-col="${col}" placeholder="Enter ${col.toLowerCase()}" onkeydown="studentFieldKeyDown(event,this)" oninput="autoResizeTA(this)">${data[col] || ''}</textarea>`;
+    container.appendChild(div);
+  });
+  // Auto-resize existing
+  container.querySelectorAll('textarea').forEach(ta => autoResizeTA(ta));
+}
+
+function studentFieldKeyDown(e, ta) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    // Allow newline (multi-line)
+    autoResizeTA(ta);
+  }
+}
+
+function autoResizeTA(ta) {
+  ta.style.height = 'auto';
+  ta.style.height = Math.max(42, ta.scrollHeight) + 'px';
+}
+
+function handlePhotoSelect(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  if (file.size > 2 * 1024 * 1024) { showToast('Image too large. Max 2MB.'); return; }
+  const reader = new FileReader();
+  reader.onload = ev => {
+    // Compress
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const MAX = 400;
+      let w = img.width, h = img.height;
+      if (w > h) { if (w > MAX) { h = h * MAX / w; w = MAX; } }
+      else { if (h > MAX) { w = w * MAX / h; h = MAX; } }
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      photoBase64 = canvas.toDataURL('image/jpeg', 0.7);
+      document.getElementById('photo-preview').innerHTML = `<img src="${photoBase64}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />`;
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+async function saveStudent() {
+  const fields = document.querySelectorAll('#student-fields textarea');
+  const data = {};
+  fields.forEach(f => { data[f.dataset.col] = f.value.trim(); });
+
+  // Determine photo URL
+  let photo_url = null;
+  if (editingStudentId) {
+    const existing = students.find(s => s.id === editingStudentId);
+    photo_url = existing ? existing.photo_url : null;
+  }
+  if (photoBase64) {
+    // Store in Supabase Storage if possible, else store as data URL (small)
+    photo_url = photoBase64; // fallback: store compressed base64 directly
+    // Try uploading to storage
+    try {
+      const blob = dataURLtoBlob(photoBase64);
+      const filename = `photos/${Date.now()}.jpg`;
+      const { data: uploadData, error: uploadErr } = await db.storage.from('sr-photos').upload(filename, blob, { upsert: true, contentType: 'image/jpeg' });
+      if (!uploadErr) {
+        const { data: pubData } = db.storage.from('sr-photos').getPublicUrl(filename);
+        if (pubData) photo_url = pubData.publicUrl;
+      }
+    } catch(err) { /* use base64 fallback */ }
+  }
+
+  if (editingStudentId) {
+    const { error } = await db.from('sr_students').update({ data, photo_url }).eq('id', editingStudentId);
+    if (error) { showToast('Error saving: ' + error.message); return; }
+    showToast('✓ Student updated');
+  } else {
+    const { error } = await db.from('sr_students').insert([{ grade: currentGrade, data, photo_url }]);
+    if (error) { showToast('Error saving: ' + error.message); return; }
+    showToast('✓ Student added');
+  }
+  closeModal('modal-student');
+  await loadGradeData(currentGrade);
+}
+
+function dataURLtoBlob(dataURL) {
+  const arr = dataURL.split(',');
+  const mime = arr[0].match(/:(.*?);/)[1];
+  const bstr = atob(arr[1]);
+  let n = bstr.length;
+  const u8arr = new Uint8Array(n);
+  while (n--) u8arr[n] = bstr.charCodeAt(n);
+  return new Blob([u8arr], { type: mime });
+}
+
+function confirmDeleteStudent(id) {
+  const s = students.find(st => st.id === id);
+  const name = s ? (s.data[columns[0]] || 'this student') : 'this student';
+  showConfirm(`Delete "${name}"?`, `This will permanently remove ${name} and all their data.`, async () => {
+    await db.from('sr_students').delete().eq('id', id);
+    showToast('✓ Student deleted');
+    closeModal('modal-confirm');
+    await loadGradeData(currentGrade);
+  });
+}
+
+// ===================== ATTENDANCE =====================
+function renderAttendance() {
+  const meta = document.getElementById('att-meta');
+  meta.textContent = `${attendanceRecords.length} day${attendanceRecords.length !== 1 ? 's' : ''} recorded`;
+
+  const list = document.getElementById('att-records-list');
+  if (attendanceRecords.length === 0) {
+    list.innerHTML = '<div class="empty-state">No attendance recorded yet.</div>';
+  } else {
+    list.innerHTML = '';
+    attendanceRecords.forEach(rec => {
+      const presentIds = rec.present_ids || [];
+      const total = students.length;
+      const present = students.filter(s => presentIds.includes(s.id)).length;
+      const dateStr = formatDate(rec.date);
+      const div = document.createElement('div');
+      div.className = 'att-record';
+      div.innerHTML = `
+        <div>
+          <div class="att-record-date">${dateStr}</div>
+          <div class="att-record-meta">${present}/${total} present</div>
+        </div>
+        <div class="att-record-actions">
+          <button class="att-icon-btn" onclick="openEditAttendance('${rec.id}')" title="Edit">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <button class="att-icon-btn danger" onclick="confirmDeleteAttendance('${rec.id}','${dateStr}')" title="Delete">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+          </button>
+        </div>`;
+      list.appendChild(div);
+    });
+  }
+
+  // Per-student
+  const perList = document.getElementById('att-per-student-list');
+  if (students.length === 0) { perList.innerHTML = '<div class="empty-state" style="padding:16px;">No students yet.</div>'; return; }
+  perList.innerHTML = '';
+  students.forEach(s => {
+    const name = (s.data && columns[0]) ? (s.data[columns[0]] || '(Unnamed)') : '(Unnamed)';
+    const daysPresent = attendanceRecords.filter(r => (r.present_ids || []).includes(s.id)).length;
+    const totalDays = attendanceRecords.length;
+    const div = document.createElement('div');
+    div.className = 'per-student-row';
+    div.innerHTML = `
+      <div class="per-student-name">
+        <div class="student-photo" style="width:28px;height:28px;font-size:11px;">${s.photo_url ? `<img src="${s.photo_url}" />` : name.charAt(0).toUpperCase()}</div>
+        ${name}
+      </div>
+      <span style="color:var(--muted);font-size:13px;">${daysPresent} / ${totalDays} days</span>`;
+    perList.appendChild(div);
+  });
+}
+
+function openMarkAttendance() {
+  editingAttendanceId = null;
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('att-date').value = today;
+  buildAttStudentList([]);
+  document.getElementById('modal-attendance').style.display = 'flex';
+}
+
+function openEditAttendance(id) {
+  editingAttendanceId = id;
+  const rec = attendanceRecords.find(r => r.id === id);
+  if (!rec) return;
+  document.getElementById('att-date').value = rec.date;
+  buildAttStudentList(rec.present_ids || []);
+  document.getElementById('modal-attendance').style.display = 'flex';
+}
+
+function buildAttStudentList(presentIds) {
+  const list = document.getElementById('att-student-list');
+  list.innerHTML = '';
+  if (students.length === 0) { list.innerHTML = '<div style="color:var(--muted);font-size:14px;padding:10px 0;">No students in this grade.</div>'; return; }
+  students.forEach(s => {
+    const name = (s.data && columns[0]) ? (s.data[columns[0]] || '(Unnamed)') : '(Unnamed)';
+    const checked = presentIds.includes(s.id);
+    const div = document.createElement('div');
+    div.className = 'att-student-item';
+    div.innerHTML = `
+      <input type="checkbox" class="att-checkbox" id="att-cb-${s.id}" data-id="${s.id}" ${checked ? 'checked' : ''} />
+      <label for="att-cb-${s.id}">
+        <div class="student-photo" style="width:28px;height:28px;font-size:11px;">${s.photo_url ? `<img src="${s.photo_url}" />` : name.charAt(0).toUpperCase()}</div>
+        ${name}
+      </label>`;
+    list.appendChild(div);
+  });
+}
+
+function attMarkAll(present) {
+  document.querySelectorAll('.att-checkbox').forEach(cb => cb.checked = present);
+}
+
+async function saveAttendance() {
+  const date = document.getElementById('att-date').value;
+  if (!date) { showToast('Please select a date.'); return; }
+  const presentIds = Array.from(document.querySelectorAll('.att-checkbox:checked')).map(cb => cb.dataset.id);
+
+  if (editingAttendanceId) {
+    await db.from('sr_attendance').update({ date, present_ids: presentIds }).eq('id', editingAttendanceId);
+    showToast('✓ Attendance updated');
+  } else {
+    // Check if date already exists
+    const existing = attendanceRecords.find(r => r.date === date);
+    if (existing) {
+      await db.from('sr_attendance').update({ present_ids: presentIds }).eq('id', existing.id);
+      showToast('✓ Attendance updated for ' + formatDate(date));
+    } else {
+      await db.from('sr_attendance').insert([{ grade: currentGrade, date, present_ids: presentIds }]);
+      showToast('✓ Attendance saved');
+    }
+  }
+  closeModal('modal-attendance');
+  await loadGradeData(currentGrade);
+}
+
+function confirmDeleteAttendance(id, dateStr) {
+  showConfirm(`Delete attendance for ${dateStr}?`, 'This will remove the attendance record for this day.', async () => {
+    await db.from('sr_attendance').delete().eq('id', id);
+    showToast('✓ Attendance deleted');
+    closeModal('modal-confirm');
+    await loadGradeData(currentGrade);
+  });
+}
+
+// ===================== PERCENTAGE =====================
+function openPercentage() {
+  document.getElementById('total-working-days').value = '';
+  document.getElementById('pct-results').innerHTML = '';
+  document.getElementById('modal-percentage').style.display = 'flex';
+}
+
+function calcPercentage() {
+  const totalDays = parseInt(document.getElementById('total-working-days').value);
+  if (!totalDays || totalDays < 1) { showToast('Enter valid working days.'); return; }
+  const results = document.getElementById('pct-results');
+  if (students.length === 0) { results.innerHTML = '<div style="color:var(--muted);font-size:14px;">No students.</div>'; return; }
+
+  let html = `<table class="pct-table"><thead><tr><th>Student</th><th>Days Present</th><th>Percentage</th></tr></thead><tbody>`;
+  students.forEach(s => {
+    const name = (s.data && columns[0]) ? (s.data[columns[0]] || '(Unnamed)') : '(Unnamed)';
+    const daysPresent = attendanceRecords.filter(r => (r.present_ids || []).includes(s.id)).length;
+    const pct = Math.round((daysPresent / totalDays) * 100);
+    const badgeClass = pct >= 75 ? '' : pct >= 50 ? 'med' : 'low';
+    html += `<tr><td>${name}</td><td>${daysPresent}</td><td><span class="pct-badge ${badgeClass}">${pct}%</span></td></tr>`;
+  });
+  html += '</tbody></table>';
+  results.innerHTML = html;
+}
+
+// ===================== MODALS =====================
+function closeModal(id) {
+  document.getElementById(id).style.display = 'none';
+}
+
+function modalOverlayClick(e, id) {
+  if (e.target === document.getElementById(id)) closeModal(id);
+}
+
+let _confirmCallback = null;
+function showConfirm(title, msg, callback) {
+  document.getElementById('confirm-title').textContent = title;
+  document.getElementById('confirm-msg').textContent = msg;
+  _confirmCallback = callback;
+  document.getElementById('confirm-ok-btn').onclick = () => { if (_confirmCallback) _confirmCallback(); };
+  document.getElementById('modal-confirm').style.display = 'flex';
+}
+
+// ===================== TOAST =====================
+let _toastTimer;
+function showToast(msg) {
+  let t = document.querySelector('.toast');
+  if (t) t.remove();
+  t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => t && t.remove(), 2800);
+}
+
+// ===================== HELPERS =====================
+function formatDate(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr + 'T00:00:00');
+  return d.toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
+}
+</script>
+
+<!-- SUPABASE TABLE SETUP INSTRUCTIONS (run in Supabase SQL editor) -->
+<!--
+CREATE TABLE IF NOT EXISTS sr_columns (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  grade text NOT NULL,
+  col_order integer DEFAULT 0,
+  name text NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS sr_students (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  grade text NOT NULL,
+  data jsonb DEFAULT '{}',
+  photo_url text,
+  created_at timestamptz DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS sr_attendance (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  grade text NOT NULL,
+  date date NOT NULL,
+  present_ids jsonb DEFAULT '[]',
+  created_at timestamptz DEFAULT now()
+);
+
+-- Enable RLS
+ALTER TABLE sr_columns ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sr_students ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sr_attendance ENABLE ROW LEVEL SECURITY;
+
+-- Policies: authenticated users can do everything
+CREATE POLICY "auth_all" ON sr_columns FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "auth_all" ON sr_students FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "auth_all" ON sr_attendance FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+-- Storage bucket for photos (optional)
+INSERT INTO storage.buckets (id, name, public) VALUES ('sr-photos', 'sr-photos', true) ON CONFLICT DO NOTHING;
+CREATE POLICY "auth_upload" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'sr-photos');
+CREATE POLICY "public_read" ON storage.objects FOR SELECT USING (bucket_id = 'sr-photos');
+-->
+</body>
+</html>
